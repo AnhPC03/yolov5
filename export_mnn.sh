@@ -15,3 +15,4 @@ mnnconvert -f ONNX \
        --MNNModel weights/mnn/${MODEL_NAME}.mnn \
        --bizCode MNN \
        --weightQuantBits 8
+echo "Convert successfully. Your MNN model is in weights/mnn/${MODEL_NAME}.mnn"
