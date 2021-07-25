@@ -28,7 +28,7 @@ onnxoptimizer>=0.2.5
 onnx-simplifier
 flatbuffers
 scikit-learn  # for coreml quantization
-MNN==1.1.4
+MNN==1.1.0
 
 # extras --------------------------------------
 # Cython  # for pycocotools https://github.com/cocodataset/cocoapi/issues/172
