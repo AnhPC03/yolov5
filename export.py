@@ -38,7 +38,7 @@ def export_torchscript(model, img, file, optimize):
         print(f'{prefix} export failure: {e}')
 
 
-def export_onnx(model, img, file, opset_version, train, dynamic, simplify):
+def export_onnx(model, img, file, output_dir, opset_version, train, dynamic, simplify):
     # ONNX model export
     prefix = colorstr('ONNX:')
     try:
@@ -46,8 +46,9 @@ def export_onnx(model, img, file, opset_version, train, dynamic, simplify):
         import onnx
 
         print(f'\n{prefix} starting export with onnx {onnx.__version__}...')
-        f = file.with_suffix('.onnx')
-        torch.onnx.export(model, img, f, verbose=False, opset_version=opset_version,
+        f_path = f"{output_dir}/{file.split('/')[-1].split('.')[0]}.onnx"
+        print(f_path)
+        torch.onnx.export(model, img, f_path, verbose=False, opset_version=opset_version,
                           training=torch.onnx.TrainingMode.TRAINING if train else torch.onnx.TrainingMode.EVAL,
                           do_constant_folding=not train,
                           input_names=['images'],
@@ -57,7 +58,7 @@ def export_onnx(model, img, file, opset_version, train, dynamic, simplify):
                                         } if dynamic else None)
 
         # Checks
-        model_onnx = onnx.load(f)  # load onnx model
+        model_onnx = onnx.load(f_path)  # load onnx model
         onnx.checker.check_model(model_onnx)  # check onnx model
         # print(onnx.helper.printable_graph(model_onnx.graph))  # print
 
@@ -72,10 +73,10 @@ def export_onnx(model, img, file, opset_version, train, dynamic, simplify):
                     dynamic_input_shape=dynamic,
                     input_shapes={'images': list(img.shape)} if dynamic else None)
                 assert check, 'assert check failed'
-                onnx.save(model_onnx, f)
+                onnx.save(model_onnx, f_path)
             except Exception as e:
                 print(f'{prefix} simplifier failure: {e}')
-        print(f'{prefix} export success, saved as {f} ({file_size(f):.1f} MB)')
+        print(f'{prefix} export success, saved as {f_path} ({file_size(f_path):.1f} MB)')
     except Exception as e:
         print(f'{prefix} export failure: {e}')
 
@@ -100,6 +101,7 @@ def export_coreml(model, img, file):
 def run(weights='./yolov5s.pt',  # weights path
         img_size=(640, 640),  # image (height, width)
         batch_size=1,  # batch size
+        out_dir='weights/onnx', # output directory
         device='cpu',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         include=('torchscript', 'onnx', 'coreml'),  # include formats
         half=False,  # FP16 half-precision export
@@ -113,7 +115,7 @@ def run(weights='./yolov5s.pt',  # weights path
     t = time.time()
     include = [x.lower() for x in include]
     img_size *= 2 if len(img_size) == 1 else 1  # expand
-    file = Path(weights)
+    file = str(Path(weights))
 
     # Load PyTorch model
     device = select_device(device)
@@ -149,7 +151,7 @@ def run(weights='./yolov5s.pt',  # weights path
     if 'torchscript' in include:
         export_torchscript(model, img, file, optimize)
     if 'onnx' in include:
-        export_onnx(model, img, file, opset_version, train, dynamic, simplify)
+        export_onnx(model, img, file, out_dir, opset_version, train, dynamic, simplify)
     if 'coreml' in include:
         export_coreml(model, img, file)
 
@@ -162,8 +164,9 @@ def parse_opt():
     parser.add_argument('--weights', type=str, default='./yolov5s.pt', help='weights path')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='image (height, width)')
     parser.add_argument('--batch-size', type=int, default=1, help='batch size')
+    parser.add_argument('--out-dir', type=str, default='weights/onnx', help='export to output directory')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--include', nargs='+', default=['torchscript', 'onnx', 'coreml'], help='include formats')
+    parser.add_argument('--include', nargs='+', default=['onnx'], help='include formats')
     parser.add_argument('--half', action='store_true', help='FP16 half-precision export')
     parser.add_argument('--inplace', action='store_true', help='set YOLOv5 Detect() inplace=True')
     parser.add_argument('--train', action='store_true', help='model.train() mode')
