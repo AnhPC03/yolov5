@@ -1,7 +1,7 @@
 export PYTHONPATH="$PWD"
 
-INPUT_SIZE=640
-MODEL_NAME=yolov5s
+MODEL_NAME=$1
+INPUT_SIZE=$2
 
 python export.py \
        --weights weights/pt/${MODEL_NAME}.pt \
